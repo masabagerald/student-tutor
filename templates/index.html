@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Tutor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f1; color: #1a1a1a; height: 100vh; display: flex; flex-direction: column; }
+
+    .header { background: #fff; border-bottom: 0.5px solid #e2e2dc; padding: .9rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 1rem; font-weight: 600; }
+    .session-info { font-size: .78rem; color: #aaa; }
+
+    .setup { max-width: 500px; margin: 4rem auto; background: #fff; border-radius: 12px; padding: 2rem; border: 0.5px solid #e2e2dc; }
+    .setup h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 500; color: #555; margin-bottom: .4rem; }
+    .form-group input, .form-group select { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: .6rem .85rem; font-size: .9rem; font-family: inherit; color: #1a1a1a; background: #fafaf7; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #999; }
+    .btn-primary { width: 100%; padding: .7rem; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: .92rem; font-weight: 500; cursor: pointer; margin-top: .5rem; }
+    .btn-primary:hover { opacity: .85; }
+
+    .chat-wrap { display: none; flex: 1; flex-direction: column; max-width: 780px; width: 100%; margin: 0 auto; padding: 1rem 1.5rem; }
+    .chat-wrap.active { display: flex; }
+
+    .status-bar { display: flex; gap: .75rem; align-items: center; margin-bottom: .75rem; flex-wrap: wrap; }
+    .status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .76rem; font-weight: 500; }
+    .pill-subject { background: #E1F5EE; color: #085041; }
+    .pill-topic   { background: #EEEDFE; color: #3C3489; }
+    .pill-conf    { background: #FAEEDA; color: #633806; }
+    .pill-quiz    { background: #fef3cd; color: #7a4f00; }
+    .pill-esc     { background: #fde0e0; color: #8b1a1a; }
+
+    .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: .75rem; padding-bottom: 1rem; }
+    .msg { max-width: 78%; padding: .75rem 1rem; border-radius: 12px; font-size: .9rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    .msg-ai   { background: #fff; border: 0.5px solid #e2e2dc; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg-user { background: #1a1a1a; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-system { background: #fde0e0; color: #8b1a1a; align-self: center; font-size: .8rem; border-radius: 8px; max-width: 90%; text-align: center; }
+
+    .input-area { display: flex; gap: .6rem; padding-top: .75rem; border-top: 0.5px solid #e2e2dc; }
+    .input-area textarea { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: .6rem .85rem; font-size: .9rem; font-family: inherit; resize: none; min-height: 44px; max-height: 120px; overflow-y: auto; }
+    .input-area textarea:focus { outline: none; border-color: #999; }
+    .send-btn { padding: .6rem 1.25rem; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: .88rem; cursor: pointer; white-space: nowrap; }
+    .send-btn:hover { opacity: .85; }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .quiz-hint { font-size: .78rem; color: #aaa; padding: .3rem 0 .5rem; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>UNEB Student Tutor</h1>
+  <span class="session-info" id="session-label"></span>
+</div>
+
+<div class="setup" id="setup">
+  <h2>Start a session</h2>
+  <div class="form-group">
+    <label>Your name</label>
+    <input type="text" id="student-name" placeholder="e.g. Sarah" />
+  </div>
+  <div class="form-group">
+    <label>Subject</label>
+    <select id="subject">
+      <option>Biology</option>
+      <option>Chemistry</option>
+      <option>Physics</option>
+      <option>Mathematics</option>
+      <option>History</option>
+      <option>Geography</option>
+      <option>English Language</option>
+      <option>Economics</option>
+      <option>Computer Studies</option>
+    </select>
+  </div>
+  <button class="btn-primary" onclick="startSession()">Start learning</button>
+</div>
+
+<div class="chat-wrap" id="chat-wrap">
+  <div class="status-bar" id="status-bar"></div>
+  <div class="messages" id="messages"></div>
+  <div class="quiz-hint" id="quiz-hint" style="display:none">
+    You have a quiz — type your answers below and press send.
+  </div>
+  <div class="input-area">
+    <textarea id="msg-input" placeholder="Ask a question, or type your answers..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+  let sessionId = null;
+  let studentName = '';
+  let subject = '';
+  let quizPending = false;
+
+  async function startSession() {
+    studentName = document.getElementById('student-name').value.trim();
+    subject = document.getElementById('subject').value;
+    if (!studentName) { alert('Please enter your name.'); return; }
+
+    const res = await fetch('/new-session', { method: 'POST' });
+    const data = await res.json();
+    sessionId = data.session_id;
+
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('chat-wrap').classList.add('active');
+    document.getElementById('session-label').textContent =
+      `${studentName} · ${subject} · Session ${sessionId.slice(0,8)}`;
+
+    updateStatus({ subject, topic: '', confidence: 5, quiz_pending: false, escalated: false });
+
+    // Send an opening message
+    await sendToGraph(`Hi! I'm ${studentName} and I want to study ${subject} today.`);
+  }
+
+  function updateStatus(state) {
+    quizPending = state.quiz_pending;
+    const bar = document.getElementById('status-bar');
+    let html = `<span class="status-pill pill-subject">${state.subject}</span>`;
+    if (state.topic) html += `<span class="status-pill pill-topic">${state.topic}</span>`;
+    html += `<span class="status-pill pill-conf">Confidence: ${state.confidence}/10</span>`;
+    if (state.quiz_pending) html += `<span class="status-pill pill-quiz">Quiz active</span>`;
+    if (state.escalated)    html += `<span class="status-pill pill-esc">Teacher notified</span>`;
+    bar.innerHTML = html;
+
+    const hint = document.getElementById('quiz-hint');
+    hint.style.display = state.quiz_pending ? 'block' : 'none';
+  }
+
+  function appendMessage(text, type) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `msg msg-${type}`;
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  async function sendToGraph(text, isQuizAnswer = false) {
+    document.getElementById('send-btn').disabled = true;
+    appendMessage(text, 'user');
+
+    const form = new FormData();
+    form.append('session_id', sessionId);
+    form.append('student_name', studentName);
+    form.append('subject', subject);
+    form.append('message', text);
+    form.append('is_quiz_answer', isQuizAnswer);
+
+    try {
+      const res = await fetch('/chat', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.error) { appendMessage('Error: ' + data.error, 'system'); return; }
+      appendMessage(data.reply, 'ai');
+      updateStatus(data);
+    } catch (e) {
+      appendMessage('Connection error: ' + e.message, 'system');
+    } finally {
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('msg-input').focus();
+    }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    input.style.height = 'auto';
+    await sendToGraph(text, quizPending);
+  }
+</script>
+</body>
+</html>
